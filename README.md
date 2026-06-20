@@ -42,7 +42,7 @@ The work runs in one Web Worker, so the page stays responsive:
 
 ```html
 <script type="module">
-  import { Torpor } from 'https://cdn.jsdelivr.net/gh/41Baloo/torpor@v0.1.0/web/torpor.js';
+  import { Torpor } from 'https://cdn.jsdelivr.net/gh/41Baloo/torpor@v0.1.0/web/torpor.min.js';
 
   const pow = new Torpor({ modulus, base, difficulty });    // hex, hex, number from the server
   pow.onProgress = ({ progress, rate, etaMs }) => { /* drive a bar / ETA */ };
