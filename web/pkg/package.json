@@ -1,0 +1,15 @@
+{
+  "name": "torpor",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "torpor_bg.wasm",
+    "torpor.js",
+    "torpor.d.ts"
+  ],
+  "main": "torpor.js",
+  "types": "torpor.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

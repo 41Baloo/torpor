@@ -1,0 +1,50 @@
+[package]
+name = "torpor"
+version = "0.1.0"
+edition = "2024"
+description = "PoW built on a Rivest-Shamir-Wagner time-lock puzzle. Inherently sequential and cheap to verify."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/41Baloo/torpor"
+readme = "README.md"
+keywords = ["pow", "proof-of-work", "anti-abuse", "time-lock", "vdf", "wasm"]
+categories = ["cryptography", "wasm", "web-programming"]
+exclude = ["/web"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+crypto-bigint = { version = "0.7.4", default-features = false }
+hex = "0.4"
+thiserror = "2.0.18"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+num-bigint = { version = "0.4", features = ["rand"] }
+num-integer = "0.1.46"
+num-traits = "0.2.19"
+num-prime = "0.5"
+rand = "0.8"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.125"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+debug = false
+
+[dev-dependencies]
+criterion = { version = "0.8.2", default-features = false, features = [
+    "cargo_bench_support",
+    "html_reports",
+    "plotters",
+] }
+
+[[bench]]
+name = "torpor"
+harness = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

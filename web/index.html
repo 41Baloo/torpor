@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Torpor time-lock PoW Demo</title>
+		<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="min-h-screen bg-base-200 flex items-center justify-center p-4">
+		<div class="card w-full max-w-md bg-base-100 shadow-xl">
+			<div class="card-body gap-4">
+				<div class="flex items-center justify-between">
+					<h1 class="card-title text-2xl">Torpor</h1><span class="badge badge-primary badge-outline">time-lock PoW</span>
+				</div>
+				<div class="form-control"><label class="label" for="diff"><span class="label-text">Difficulty</span><span class="label-text-alt opacity-70">sequential squarings</span></label><input id="range" type="range" min="50000" max="2000000" step="50000" value="300000" class="range range-primary range-sm" /><input id="diff" type="number" min="1" value="300000" class="input input-bordered input-sm mt-2" />
+					<div class="join mt-2"><button class="btn btn-xs join-item" data-preset="100000">100k</button><button class="btn btn-xs join-item" data-preset="300000">300k</button><button class="btn btn-xs join-item" data-preset="1000000">1M</button><button class="btn btn-xs join-item" data-preset="2000000">2M</button></div>
+				</div>
+				<div class="flex gap-2"><button id="solve" class="btn btn-primary flex-1">Solve</button><button id="cancel" class="btn btn-ghost" disabled>Cancel</button></div><progress id="bar" class="progress progress-primary w-full" value="0" max="1"></progress>
+				<div class="stats stats-horizontal shadow w-full">
+					<div class="stat place-items-center px-2 py-3">
+						<div class="stat-title text-xs">Progress</div>
+						<div class="stat-value text-xl" id="pct">0%</div>
+					</div>
+					<div class="stat place-items-center px-2 py-3">
+						<div class="stat-title text-xs">Rate</div>
+						<div class="stat-value text-xl" id="rate">-</div>
+						<div class="stat-desc">sq/sec</div>
+					</div>
+					<div class="stat place-items-center px-2 py-3">
+						<div class="stat-title text-xs">ETA</div>
+						<div class="stat-value text-xl" id="eta">-</div>
+					</div>
+				</div>
+				<div id="status" class="text-sm opacity-70">idle</div>
+				<div id="answer" class="alert alert-success hidden"><span class="font-mono text-xs break-all"></span></div>
+			</div>
+		</div>
+		<script type="module">
+      import {
+        Torpor
+      } from './torpor.js';
+      const modulus = 'af64b6097b3ee918c3039c70b630308d03f90112a044ea15c6516c254bdeb03e3fb592eac5db1db254bef997a4d1369b4b5a3d1e3b1aa455b73b56f85b5296025b4bb4722b190cc12c43cdc71aba66d75413549220b738cc09a339f5d5a0d944be2bd78028b4ee3417a66249b0ae5a90b55a9cb138bd0c8cf6a2c26c88bc38fcf308ba799ab8878522eff0a94bc833917f8f210362feafe955026a74a546ee3acc2fbde41a925abcba3a3dde10522ea9abd3ba378e1aad597ea94c86bce859cc75c01265549d658628a6d9320ad35423b8983b0e9273e4e95c9c1875e959d1f242c216af76b85a66568e1c0fffbc2187b80e88358a2a2ad997deb97cfd1dedbb';
+      const base = '15c810fab4c3136524819be34e8e83eeff642fa1d16546bbd98edfa52e8f639d1907064f076ad7a11fb25b61680568198df808f2a00d69117187aba037f3eaf37eee9f8fd9ae22301de5f15525bbbb053936876cc9eff1221f0dcc27cee07b52ee6f3994e1f11d6ed3c117a01191c98532d6008c318e88c4d860ba17cd4fe87a36e9b77d07148982908d25e3ed828287aeb8cc8150df3e7c17afc84c3923a6f3ac7d427f54e158a3f533ff2b01e0c6aaa01d1ccad6cb745c9d978f8b92204e15c3fcf511c057e5245fa93d04e14eb65a3185ba6aa74e878e76b6739e5cc91fdf69c78f8f5d36450c40e9ceb3dde5bed9b9577b9d12a207dad9b50d3cc5d226e8';
+      const $ = (id) => document.getElementById(id);
+      const range = $('range'),
+        diff = $('diff'),
+        bar = $('bar');
+      const pct = $('pct'),
+        rate = $('rate'),
+        eta = $('eta'),
+        status = $('status');
+      const solveBtn = $('solve'),
+        cancelBtn = $('cancel'),
+        answer = $('answer');
+      const nf = new Intl.NumberFormat();
+      let pow = null;
+      const setDifficulty = (v) => {
+        const n = Math.max(1, Math.round(v));
+        diff.value = n;
+        range.value = Math.min(range.max, Math.max(range.min, n));
+      };
+      range.addEventListener('input', () => setDifficulty(range.value));
+      diff.addEventListener('input', () => setDifficulty(diff.value));
+      for (const b of document.querySelectorAll('[data-preset]')) {
+        b.addEventListener('click', () => setDifficulty(b.dataset.preset));
+      }
+      const setBusy = (busy) => {
+        solveBtn.disabled = busy;
+        cancelBtn.disabled = !busy;
+        range.disabled = diff.disabled = busy;
+        for (const b of document.querySelectorAll('[data-preset]')) b.disabled = busy;
+      };
+      solveBtn.addEventListener('click', async () => {
+        const difficulty = Number(diff.value);
+        answer.classList.add('hidden');
+        bar.value = 0;
+        pct.textContent = '0%';
+        rate.textContent = eta.textContent = '-';
+        status.textContent = 'starting...';
+        setBusy(true);
+        pow = new Torpor({
+          modulus,
+          base,
+          difficulty
+        });
+        pow.onStart = () => {
+          status.textContent = 'solving...';
+        };
+        pow.onProgress = ({ progress, rate: r, etaMs }) => {
+          bar.value = progress;
+          pct.textContent = (progress * 100).toFixed(1) + '%';
+          rate.textContent = nf.format(Math.round(r));
+          eta.textContent = (etaMs / 1000).toFixed(1) + 's';
+        };
+        try {
+          const { answer: hex, elapsedMs } = await pow.solve();
+          bar.value = 1;
+          pct.textContent = '100%';
+          eta.textContent = '0.0s';
+          rate.textContent = nf.format(Math.round((difficulty / elapsedMs) * 1000));
+          status.textContent = `solved ${nf.format(difficulty)} squarings in ${(elapsedMs / 1000).toFixed(2)}s`;
+          answer.querySelector('span').textContent = 'answer: ' + hex;
+          answer.classList.remove('hidden');
+        } catch (e) {
+          status.textContent = 'error: ' + e.message;
+        } finally {
+          setBusy(false);
+        }
+      });
+      cancelBtn.addEventListener('click', () => {
+        pow?.cancel();
+        status.textContent = 'cancelled';
+        setBusy(false);
+      });
+		</script>
+	</body>
+</html>

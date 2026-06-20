@@ -1,0 +1,3 @@
+/target
+
+# web/pkg (wasm-pack output) is committed on purpose so jsDelivr can serve it.

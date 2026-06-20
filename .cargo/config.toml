@@ -1,0 +1,5 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "-C", "target-feature=+simd128,+bulk-memory,+sign-ext,+mutable-globals",
+    "-C", "panic=abort",
+]
