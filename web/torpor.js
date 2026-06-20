@@ -1,4 +1,4 @@
-import init, { Solver } from './pkg/torpor.min.js';
+import init, { Solver } from './pkg/torpor.js';
 
 const IS_WORKER = typeof DedicatedWorkerGlobalScope !== 'undefined' && self instanceof DedicatedWorkerGlobalScope;
 
