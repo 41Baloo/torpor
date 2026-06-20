@@ -6,7 +6,7 @@ description = "PoW built on a Rivest-Shamir-Wagner time-lock puzzle. Inherently 
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/41Baloo/torpor"
 readme = "README.md"
-keywords = ["pow", "proof-of-work", "anti-abuse", "time-lock", "vdf", "wasm"]
+keywords = ["pow", "anti-abuse", "time-lock", "vdf", "wasm"]
 categories = ["cryptography", "wasm", "web-programming"]
 exclude = ["/web"]
 
